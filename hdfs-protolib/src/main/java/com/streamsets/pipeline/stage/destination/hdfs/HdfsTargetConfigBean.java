@@ -42,6 +42,7 @@ import com.streamsets.pipeline.lib.el.TimeNowEL;
 import com.streamsets.pipeline.stage.destination.hdfs.writer.ActiveRecordWriters;
 import com.streamsets.pipeline.stage.destination.hdfs.writer.RecordWriterManager;
 import com.streamsets.pipeline.stage.destination.lib.DataGeneratorFormatConfig;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -67,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HdfsTargetConfigBean {
 
@@ -289,6 +291,20 @@ public class HdfsTargetConfigBean {
   public String lateRecordsLimit;
 
   @ConfigDef(
+      required = true,
+      type = ConfigDef.Type.STRING,
+      defaultValue = "${1 * HOURS}",
+      label = "Idle Timeout (secs)",
+      description = "Time limit (in seconds) after which a file to which no records are written is closed. " +
+          "If a number is used it is considered seconds, it can be multiplied by 'MINUTES' or 'HOURS', ie: " +
+          "'${30 * MINUTES}'. Set this to -1 to not close the files on idle.",
+      group = "OUTPUT_FILES",
+      elDefs = {TimeEL.class},
+      evaluation = ConfigDef.Evaluation.EXPLICIT
+  )
+  public String idleTimeout;
+
+  @ConfigDef(
     required = true,
     type = ConfigDef.Type.MODEL,
     defaultValue = "SEND_TO_ERROR",
@@ -336,10 +352,10 @@ public class HdfsTargetConfigBean {
   private Configuration hdfsConfiguration;
   private UserGroupInformation loginUgi;
   private long lateRecordsLimitSecs;
+  private long idleTimeSecs = -1;
   private ActiveRecordWriters currentWriters;
   private ActiveRecordWriters lateWriters;
   private ELEval timeDriverElEval;
-  private ELEval lateRecordsLimitEvaluator;
   private CompressionCodec compressionCodec;
   private Counter toHdfsRecordsCounter;
   private Meter toHdfsRecordsMeter;
@@ -351,31 +367,10 @@ public class HdfsTargetConfigBean {
   public void init(Stage.Context context, List<Stage.ConfigIssue> issues) {
     boolean hadoopFSValidated = validateHadoopFS(context, issues);
 
-    try {
-      lateRecordsLimitEvaluator = context.createELEval("lateRecordsLimit");
-      context.parseEL(lateRecordsLimit);
-      lateRecordsLimitSecs = lateRecordsLimitEvaluator.eval(context.createELVars(),
-        lateRecordsLimit, Long.class);
-      if (lateRecordsLimitSecs <= 0) {
-        issues.add(
-            context.createConfigIssue(
-                Groups.LATE_RECORDS.name(),
-                HDFS_TARGET_CONFIG_BEAN_PREFIX + "lateRecordsLimit",
-                Errors.HADOOPFS_10
-            )
-        );
-      }
-    } catch (Exception ex) {
-      issues.add(
-          context.createConfigIssue(
-              Groups.LATE_RECORDS.name(),
-              HDFS_TARGET_CONFIG_BEAN_PREFIX + "lateRecordsLimit",
-              Errors.HADOOPFS_06,
-              lateRecordsLimit,
-              ex.toString(),
-              ex
-          )
-      );
+    lateRecordsLimitSecs =
+        initTimeConfigs(context, "lateRecordsLimit", lateRecordsLimit, Groups.LATE_RECORDS, issues);
+    if (idleTimeout != null && !idleTimeout.isEmpty()) {
+      idleTimeSecs = initTimeConfigs(context, "idleTimeout", idleTimeout, Groups.OUTPUT_FILES, issues);
     }
     if (maxFileSize < 0) {
       issues.add(
@@ -453,6 +448,11 @@ public class HdfsTargetConfigBean {
                 dirPathTemplate, TimeZone.getTimeZone(timeZoneID), lateRecordsLimitSecs, maxFileSize * MEGA_BYTE,
                 maxRecordsPerFile, fileType, compressionCodec, compressionType, keyEl,
                 dataGeneratorFormatConfig.getDataGeneratorFactory(), (Target.Context) context, "dirPathTemplate");
+
+        if (idleTimeSecs > 0) {
+          mgr.setIdleTimeoutSeconds(idleTimeSecs);
+        }
+
         // validate if the dirPathTemplate can be resolved by Els constants
         if (mgr.validateDirTemplate(
             Groups.OUTPUT_FILES.name(),
@@ -494,6 +494,10 @@ public class HdfsTargetConfigBean {
                   dataGeneratorFormatConfig.getDataGeneratorFactory(),
                   (Target.Context) context, "lateRecordsDirPathTemplate"
           );
+
+          if (idleTimeSecs > 0) {
+            mgr.setIdleTimeoutSeconds(idleTimeSecs);
+          }
 
           // validate if the lateRecordsDirPathTemplate can be resolved by Els constants
           if (mgr.validateDirTemplate(
@@ -541,12 +545,19 @@ public class HdfsTargetConfigBean {
     }
 
     if (issues.isEmpty()) {
+
       try {
-        FileSystem fs = getFileSystemForInitDestroy();
-        getCurrentWriters().commitOldFiles(fs);
-        if (getLateWriters() != null) {
-          getLateWriters().commitOldFiles(fs);
-        }
+        getUGI().doAs(new PrivilegedExceptionAction<Void>() {
+          @Override
+          public Void run() throws Exception {
+            FileSystem fs = getFileSystemForInitDestroy();
+            getCurrentWriters().commitOldFiles(fs);
+            if (getLateWriters() != null) {
+              getLateWriters().commitOldFiles(fs);
+            }
+            return null;
+          }
+        });
       } catch (Exception ex) {
         issues.add(context.createConfigIssue(null, null, Errors.HADOOPFS_23, ex.toString(), ex));
       }
@@ -560,20 +571,61 @@ public class HdfsTargetConfigBean {
   public void destroy() {
     LOG.info("Destroy");
     try {
-      if (currentWriters != null) {
-        currentWriters.closeAll();
-      }
-      if (lateWriters != null) {
-        lateWriters.closeAll();
-      }
-      if (loginUgi != null) {
-        getFileSystemForInitDestroy().close();
-      }
+      getUGI().doAs(new PrivilegedExceptionAction<Void>() {
+        @Override
+        public Void run() throws Exception {
+          if (currentWriters != null) {
+            currentWriters.closeAll();
+          }
+          if (lateWriters != null) {
+            lateWriters.closeAll();
+          }
+          if (loginUgi != null) {
+            getFileSystemForInitDestroy().close();
+          }
+          return null;
+        }
+      });
     } catch (Exception ex) {
       LOG.warn("Error while closing HDFS FileSystem URI='{}': {}", hdfsUri, ex.toString(), ex);
     }
   }
 
+  private long initTimeConfigs(
+      Stage.Context context,
+      String configName,
+      String configuredValue,
+      Groups configGroup,
+      List<Stage.ConfigIssue> issues) {
+    long timeInSecs = 0;
+    try {
+      ELEval timeEvaluator = context.createELEval(configName);
+      context.parseEL(configuredValue);
+      timeInSecs = timeEvaluator.eval(context.createELVars(),
+          configuredValue, Long.class);
+      if (timeInSecs <= 0) {
+        issues.add(
+            context.createConfigIssue(
+                configGroup.name(),
+                HDFS_TARGET_CONFIG_BEAN_PREFIX + configName,
+                Errors.HADOOPFS_10
+            )
+        );
+      }
+    } catch (Exception ex) {
+      issues.add(
+          context.createConfigIssue(
+              configGroup.name(),
+              HDFS_TARGET_CONFIG_BEAN_PREFIX + configName,
+              Errors.HADOOPFS_06,
+              configuredValue,
+              ex.toString(),
+              ex
+          )
+      );
+    }
+    return timeInSecs;
+  }
   Counter getToHdfsRecordsCounter() {
     return toHdfsRecordsCounter;
   }
@@ -719,6 +771,8 @@ public class HdfsTargetConfigBean {
   }
 
   private boolean validateHadoopFS(Stage.Context context, List<Stage.ConfigIssue> issues) {
+    hdfsConfiguration = getHadoopConfiguration(context, issues);
+
     boolean validHapoopFsUri = true;
     // if hdfsUri is empty, we'll use the default fs uri from hdfs config. no validation required.
     if (!hdfsUri.isEmpty()) {
@@ -730,6 +784,9 @@ public class HdfsTargetConfigBean {
               ex.toString(), ex));
           validHapoopFsUri = false;
         }
+
+        // Configured URI have precedence
+        hdfsConfiguration.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, hdfsUri);
       } else {
         issues.add(
             context.createConfigIssue(
@@ -741,14 +798,19 @@ public class HdfsTargetConfigBean {
         );
         validHapoopFsUri = false;
       }
+    } else {
+      // HDFS URI is not set, we're expecting that it will be available in config files
+      hdfsUri = hdfsConfiguration.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    }
+
+    // We must have value of default.FS otherwise it's clear miss configuration
+    if (hdfsUri == null || hdfsUri.isEmpty()) {
+      issues.add(context.createConfigIssue(Groups.HADOOP_FS.name(), null, Errors.HADOOPFS_49));
+      validHapoopFsUri = false;
     }
 
     StringBuilder logMessage = new StringBuilder();
     try {
-      hdfsConfiguration = getHadoopConfiguration(context, issues);
-
-      hdfsConfiguration.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, hdfsUri);
-
       // forcing UGI to initialize with the security settings from the stage
       UserGroupInformation.setConfiguration(hdfsConfiguration);
       Subject subject = Subject.getSubject(AccessController.getContext());
@@ -792,54 +854,63 @@ public class HdfsTargetConfigBean {
       LOG.info("Validation Error: " + Errors.HADOOPFS_01.getMessage(), hdfsUri, ex.toString(), ex);
       issues.add(context.createConfigIssue(Groups.HADOOP_FS.name(), null, Errors.HADOOPFS_01, hdfsUri,
         String.valueOf(ex), ex));
+
+      // We weren't able connect to the cluster and hence setting the validity to false
+      validHapoopFsUri = false;
     }
     LOG.info("Authentication Config: " + logMessage);
     return validHapoopFsUri;
   }
 
-  private boolean validateHadoopDir(Stage.Context context, String configName, String configGroup,
-                            String dirPathTemplate, List<Stage.ConfigIssue> issues) {
-    boolean ok;
+  private boolean validateHadoopDir(final Stage.Context context, final String configName, final String configGroup,
+                            String dirPathTemplate, final List<Stage.ConfigIssue> issues) {
+    final AtomicBoolean ok = new AtomicBoolean(true);
     if (!dirPathTemplate.startsWith("/")) {
       issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_40));
-      ok = false;
+      ok.set(false);
     } else {
       dirPathTemplate = (dirPathTemplate.isEmpty()) ? "/" : dirPathTemplate;
       try {
-        Path dir = new Path(dirPathTemplate);
-        FileSystem fs = getFileSystemForInitDestroy();
-        if (!fs.exists(dir)) {
-          try {
-            if (fs.mkdirs(dir)) {
-              ok = true;
+        final Path dir = new Path(dirPathTemplate);
+        final FileSystem fs = getFileSystemForInitDestroy();
+        getUGI().doAs(new PrivilegedExceptionAction<Void>() {
+          @Override
+          public Void run() throws Exception {
+            if (!fs.exists(dir)) {
+              try {
+                if (fs.mkdirs(dir)) {
+                  ok.set(true);
+                } else {
+                  issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_41));
+                  ok.set(false);
+                }
+              } catch (IOException ex) {
+                issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_42,
+                    ex.toString()));
+                ok.set(false);
+              }
             } else {
-              issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_41));
-              ok = false;
+              try {
+                Path dummy = new Path(dir, "_sdc-dummy-" + UUID.randomUUID().toString());
+                fs.create(dummy).close();
+                fs.delete(dummy, false);
+                ok.set(true);
+              } catch (IOException ex) {
+                issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_43,
+                    ex.toString()));
+                ok.set(false);
+              }
             }
-          } catch (IOException ex) {
-            issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_42,
-              ex.toString()));
-            ok = false;
+            return null;
           }
-        } else {
-          try {
-            Path dummy = new Path(dir, "_sdc-dummy-" + UUID.randomUUID().toString());
-            fs.create(dummy).close();
-            fs.delete(dummy, false);
-            ok = true;
-          } catch (IOException ex) {
-            issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_43,
-              ex.toString()));
-            ok = false;
-          }
-        }
+        });
       } catch (Exception ex) {
         issues.add(context.createConfigIssue(configGroup, configName, Errors.HADOOPFS_44,
           ex.toString()));
-        ok = false;
+        ok.set(false);
       }
     }
-    return ok;
+    return ok.get();
   }
 
   private FileSystem getFileSystemForInitDestroy() throws Exception {

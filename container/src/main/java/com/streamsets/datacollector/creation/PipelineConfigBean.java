@@ -172,6 +172,7 @@ public class PipelineConfigBean implements Stage {
     required = false,
     type = ConfigDef.Type.MODEL,
     label = "Statistics Aggregator",
+    defaultValue = "streamsets-datacollector-basic-lib::com_streamsets_pipeline_stage_destination_devnull_StatsNullDTarget::1",
     displayPosition = 95,
     group = "STATS"
   )
@@ -241,6 +242,17 @@ public class PipelineConfigBean implements Stage {
     triggeredByValue = {"CLUSTER_MESOS_STREAMING"}
   )
   public String hdfsS3ConfDir;
+
+  @ConfigDef(
+      required = false,
+      type = ConfigDef.Type.NUMBER,
+      defaultValue = "0",
+      label = "Rate Limit (records / sec)",
+      description = "Maximum number of events per second that should be accepted into the pipeline. " +
+          "Rate is not limited if this is not set, or is set to 0",
+      displayPosition = 180
+  )
+  public long rateLimit;
 
   @Override
   public List<ConfigIssue> init(Info info, Context context) {

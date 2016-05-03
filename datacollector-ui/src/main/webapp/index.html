@@ -63,8 +63,13 @@
       <a class="logo" ng-href="{{common.baseHref}}">
         <img src="assets/logo.png" />
       </a>
-      <span class="navbar-brand">{{common.headerTitle}}</span>
-      <span class="navbar-brand" ng-if="common.remoteServerInfo.registrationStatus">{{'global.menu.remotelyControlled' | translate}}</span>
+
+      <span ng-if="common.remoteServerInfo.registrationStatus">
+        <img src="assets/cloud_done.svg" title="{{'global.menu.remotelyControlled' | translate}}"/>
+      </span>
+
+      <span class="navbar-brand" ng-if="common.headerTitle">{{common.headerTitle}}</span>
+
     </div>
     <div class="collapse navbar-collapse" id="sdc-header-navbar-collapse">
 
@@ -124,7 +129,7 @@
                   <strong>{{alert.ruleDefinition.label}}: </strong> {{alert.gauge.value.exceptionMessage}}
                 </span>
 
-                <span ng-if="!alert.gauge.value.exceptionMessage && alert.ruleDefinition.family === 'general'" ng-bind="alert.ruleDefinition.alertText"></span>
+                <span ng-if="!alert.gauge.value.exceptionMessage && alert.ruleDefinition.family !== 'drift'" ng-bind="alert.ruleDefinition.alertText"></span>
 
                 <span ng-if="!alert.gauge.value.exceptionMessage && alert.ruleDefinition.family === 'drift' && alert.gauge.value.alertTexts">
                   <span class="alert-text" ng-repeat="alertText in alert.gauge.value.alertTexts track by $index">{{alertText}}</span>
@@ -180,7 +185,7 @@
               </a>
             </li>
 
-            <li ng-if="isAuthorized([userRoles.admin]) && common.authenticationType === 'sso' && !common.remoteServerInfo.registrationStatus">
+            <li ng-if="isAuthorized([userRoles.admin]) && common.isDPMEnabled && !common.remoteServerInfo.registrationStatus">
               <a href="javascript:;" ng-click="common.generateApplicationToken()">
                 <i class="fa fa-file-text"></i>
                 <span translate="global.menu.admin.generateApplicationToken">Application Token</span>
@@ -232,7 +237,7 @@
 
             <li role="presentation" class="divider"></li>
 
-            <li ng-if="common.authenticationType === 'form' || common.authenticationType === 'sso'">
+            <li ng-if="common.authenticationType === 'form' || common.isDPMEnabled">
               <a href="javascript:;" ng-click="common.logout()">
                 <span class="glyphicon glyphicon-log-out"></span>
                 <span translate="global.menu.account.logout">Logout</span>

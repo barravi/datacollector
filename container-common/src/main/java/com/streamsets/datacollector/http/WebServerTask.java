@@ -21,6 +21,7 @@ package com.streamsets.datacollector.http;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.streamsets.datacollector.main.RuntimeInfo;
 import com.streamsets.datacollector.task.AbstractTask;
@@ -136,7 +137,10 @@ public class WebServerTask extends AbstractTask {
 
 
   public static final String REMOTE_APPLICATION_TOKEN = "dpm.applicationToken";
-  private static final String REMOTE_APPLICATION_TOKEN_DEFAULT = "";
+  public static final String REMOTE_APPLICATION_TOKEN_DEFAULT = "";
+
+  public static final String DPM_ENABLED = "dpm.enabled";
+  public static final boolean DPM_ENABLED_DEFAULT = false;
 
   private static final String JSESSIONID_COOKIE = "JSESSIONID_";
 
@@ -307,23 +311,28 @@ public class WebServerTask extends AbstractTask {
   private SecurityHandler createSecurityHandler(Server server, ServletContextHandler appHandler, String appContext) {
     ConstraintSecurityHandler securityHandler;
     String auth = conf.get(AUTHENTICATION_KEY, AUTHENTICATION_DEFAULT);
-    switch (auth) {
-      case "none":
-        securityHandler = null;
-        break;
-      case "digest":
-      case "basic":
-        securityHandler = configureDigestBasic(server, auth);
-        break;
-      case "form":
-        securityHandler = configureForm(server, auth);
-        break;
-      case "sso":
-        securityHandler = configureSSO(appHandler, appContext);
-        break;
-      default:
-        throw new RuntimeException(Utils.format("Invalid authentication mode '{}', must be one of '{}'",
-            auth, AUTHENTICATION_MODES));
+    boolean isDPMEnabled = conf.get(DPM_ENABLED, DPM_ENABLED_DEFAULT);
+    if (isDPMEnabled) {
+      securityHandler = configureSSO(appHandler, appContext);
+    } else {
+      switch (auth) {
+        case "none":
+          securityHandler = null;
+          break;
+        case "digest":
+        case "basic":
+          securityHandler = configureDigestBasic(server, auth);
+          break;
+        case "form":
+          securityHandler = configureForm(server, auth);
+          break;
+        case "sso":
+          securityHandler = configureSSO(appHandler, appContext);
+          break;
+        default:
+          throw new RuntimeException(Utils.format("Invalid authentication mode '{}', must be one of '{}'",
+              auth, AUTHENTICATION_MODES));
+      }
     }
     if (securityHandler != null) {
       List<ConstraintMapping> constraintMappings = new ArrayList<>();
@@ -363,7 +372,14 @@ public class WebServerTask extends AbstractTask {
   }
 
   private ConstraintSecurityHandler configureSSO(ServletContextHandler appHandler, String appContext) {
-    validateApplicationToken();
+    addToPostStart(new Runnable() {
+      @Override
+      public void run() {
+        LOG.debug("Validating Application Token with Remote Service");
+        validateApplicationToken();
+      }
+    });
+
     ConstraintSecurityHandler security = new ConstraintSecurityHandler();
     final SSOService ssoService = new ProxySSOService(new RemoteSSOService());
     appHandler.getServletContext().setAttribute(SSOService.SSO_SERVICE_KEY, ssoService);
@@ -669,16 +685,18 @@ public class WebServerTask extends AbstractTask {
   }
 
   private void validateApplicationToken() {
-    String applicationToken = conf.get(REMOTE_APPLICATION_TOKEN, "");
+    String applicationToken = conf.get(REMOTE_APPLICATION_TOKEN, REMOTE_APPLICATION_TOKEN_DEFAULT);
 
     if (applicationToken != null && applicationToken.trim().length() > 0 &&
-        conf.hasName(RemoteSSOService.SECURITY_SERVICE_BASE_URL_CONFIG)) {
-      String securityServiceBaseURL = conf.get(RemoteSSOService.SECURITY_SERVICE_BASE_URL_CONFIG,
-          RemoteSSOService.SECURITY_SERVICE_BASE_URL_DEFAULT);
-      String registrationURI = securityServiceBaseURL + "/public-rest/v1/components/registration";
-      Map<String, String> registrationData = new HashMap<>();
+        conf.hasName(RemoteSSOService.DPM_BASE_URL_CONFIG)) {
+      String dpmBaseURL = RemoteSSOService.getValidURL(conf.get(RemoteSSOService.DPM_BASE_URL_CONFIG,
+          RemoteSSOService.DPM_BASE_URL_DEFAULT));
+      String registrationURI = dpmBaseURL + "security/public-rest/v1/components/registration";
+
+      Map<String, Object> registrationData = new HashMap<>();
       registrationData.put("authToken", applicationToken);
       registrationData.put("componentId", this.runtimeInfo.getId());
+      registrationData.put("attributes", ImmutableMap.of("baseHttpUrl", this.runtimeInfo.getBaseHttpUrl()));
       Response response = ClientBuilder.newClient()
           .target(registrationURI)
           .register(new CsrfProtectionFilter("CSRF"))

@@ -41,12 +41,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class AlertManager {
 
@@ -91,7 +88,7 @@ public class AlertManager {
         .replace(EmailConstants.TIME_KEY, dateTimeFormat.format(new Date(timestamp)))
         .replace(EmailConstants.PIPELINE_NAME_KEY, pipelineName)
         .replace(EmailConstants.DESCRIPTION_KEY, description)
-        .replace(EmailConstants.URL_KEY, runtimeInfo.getBaseHttpUrl() + EmailConstants.PIPELINE_URL + pipelineName.replaceAll(" ", "%20"));
+        .replace(EmailConstants.URL_KEY, runtimeInfo.getBaseHttpUrl() + EmailConstants.PIPELINE_URL + pipelineName);
       subject = EmailConstants.STREAMSETS_DATA_COLLECTOR_ALERT + subject;
       if (LOG.isDebugEnabled()) {
         LOG.debug("Email Alert: subject = " + subject + ", body = " + emailBody);
@@ -110,21 +107,17 @@ public class AlertManager {
 
   public void alert(Object value, List<String> emailIds, RuleDefinition ruleDefinition) {
     Gauge<Object> gauge = MetricsConfigurator.getGauge(metrics, AlertsUtil.getAlertGaugeName(ruleDefinition.getId()));
-
     if (gauge == null) {
-      final Map<String, Object> alertResponse = new HashMap<>();
-      alertResponse.put(EmailConstants.CURRENT_VALUE, value);
-      Gauge<Object> alertResponseGauge = new Gauge<Object>() {
-        @Override
-        public Object getValue() {
-          return alertResponse;
-        }
-      };
+      Gauge<Object> alertResponseGauge = AlertManagerHelper.createAlertResponseGauge(
+          pipelineName,
+          revision,
+          metrics,
+          value,
+          ruleDefinition
+      );
 
-      alertResponse.put(EmailConstants.TIMESTAMP, System.currentTimeMillis());
-      List<String> alertTexts = new ArrayList<>();
-      alertTexts.add(ruleDefinition.getAlertText());
-      alertResponse.put(EmailConstants.ALERT_TEXTS, alertTexts);
+      eventListenerManager.broadcastAlerts(new AlertInfo(pipelineName, ruleDefinition, alertResponseGauge));
+
       //send email the first time alert is triggered
       if(ruleDefinition.isSendEmail()) {
         try {
@@ -132,10 +125,10 @@ public class AlertManager {
           String emailBody = Resources.toString(url, Charsets.UTF_8);
           java.text.DateFormat dateTimeFormat = new SimpleDateFormat(EmailConstants.DATE_MASK, Locale.ENGLISH);
           emailBody = emailBody.replace(EmailConstants.ALERT_VALUE_KEY, String.valueOf(value))
-            .replace(EmailConstants.TIME_KEY, dateTimeFormat.format(new Date((Long) alertResponse.get(EmailConstants.TIMESTAMP))))
+            .replace(EmailConstants.TIME_KEY, dateTimeFormat.format(new Date((Long) System.currentTimeMillis())))
             .replace(EmailConstants.PIPELINE_NAME_KEY, pipelineName)
             .replace(EmailConstants.CONDITION_KEY, ruleDefinition.getCondition())
-            .replace(EmailConstants.URL_KEY, runtimeInfo.getBaseHttpUrl() + EmailConstants.PIPELINE_URL + pipelineName.replaceAll(" ", "%20"));
+            .replace(EmailConstants.URL_KEY, runtimeInfo.getBaseHttpUrl() + EmailConstants.PIPELINE_URL + pipelineName);
 
           if(ruleDefinition instanceof DataRuleDefinition) {
             emailBody = emailBody.replace(EmailConstants.ALERT_NAME_KEY, ((DataRuleDefinition)ruleDefinition).getLabel());
@@ -154,48 +147,12 @@ public class AlertManager {
           //Log error and move on. This should not stop the pipeline.
         }
       }
-      eventListenerManager.broadcastAlerts(new AlertInfo(pipelineName, ruleDefinition, alertResponseGauge));
-
-      MetricsConfigurator.createGauge(metrics, AlertsUtil.getAlertGaugeName(ruleDefinition.getId()),
-          alertResponseGauge, pipelineName, revision);
     } else {
-      Map<String, Object> alertResponse = (Map<String, Object>) gauge.getValue();
-
-      // we keep timestamp of first trigger
-
-      // update current value
-      alertResponse.put(EmailConstants.CURRENT_VALUE, value);
-
-      // add new alert text
-      List<String> alertTexts = (List<String>) alertResponse.get(EmailConstants.ALERT_TEXTS);
-      alertTexts = new ArrayList<>(alertTexts);
-      alertTexts.add(ruleDefinition.getAlertText());
-      if (alertTexts.size() > 10) {
-        alertTexts.remove(0);
-      }
-      alertResponse.put(EmailConstants.ALERT_TEXTS, alertTexts);
+      AlertManagerHelper.updateAlertGauge(gauge, value, ruleDefinition);
     }
   }
 
   public void alertException(Object value, RuleDefinition ruleDefinition) {
-    final Map<String, Object> alertResponse = new HashMap<>();
-    alertResponse.put(EmailConstants.EXCEPTION_MESSAGE, value);
-    Gauge<Object> gauge = MetricsConfigurator.getGauge(metrics, AlertsUtil.getAlertGaugeName(ruleDefinition.getId()));
-
-    if (gauge != null) {
-      //remove existing gauge
-      MetricsConfigurator.removeGauge(metrics, AlertsUtil.getAlertGaugeName(ruleDefinition.getId()), pipelineName,
-        revision);
-    }
-
-    Gauge<Object> alertResponseGauge = new Gauge<Object>() {
-      @Override
-      public Object getValue() {
-        return alertResponse;
-      }
-    };
-
-    MetricsConfigurator.createGauge(metrics, AlertsUtil.getAlertGaugeName(ruleDefinition.getId()),
-      alertResponseGauge, pipelineName, revision);
+    AlertManagerHelper.alertException(pipelineName, revision, metrics, value, ruleDefinition);
   }
 }

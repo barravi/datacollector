@@ -68,6 +68,7 @@
    <topicmeta>
     <shortdesc/>
    </topicmeta>
+   <topicref href="../Destinations/HBase-FieldMappings.dita"/>
    <topicref href="../Destinations/HBase-Kerberos.dita"/>
    <topicref href="../Destinations/HBase-HBaseUser.dita"/>
    <topicref href="../Destinations/HBase-HBaseProperties.dita"/>
@@ -124,6 +125,12 @@
    <topicref href="../Destinations/KinProducer-DataFormat.dita"/>
    <topicref href="../Destinations/KinProducer-Configuring.dita"/>
   </topicref>
+  <topicref href="../Destinations/Kudu.dita" chunk="to-content">
+   <topicmeta>
+    <shortdesc/>
+   </topicmeta>
+   <topicref href="../Destinations/Kudu-Configuring.dita"/>
+  </topicref>
   <topicref href="../Destinations/LocalFS.dita" chunk="to-content">
    <topicmeta>
     <shortdesc/>
@@ -155,6 +162,13 @@
    <topicref href="../Destinations/MapRStreamsProd-PartitionStrat.dita"/>
    <topicref href="../Destinations/MapRStreamsProd-AddProps.dita"/>
    <topicref href="../Destinations/MapRStreamsProd-Configuring.dita"/>
+  </topicref>
+  <topicref href="../Destinations/MongoDB.dita" chunk="to-content"> 
+   <topicmeta>
+   <shortdesc/>
+  </topicmeta>
+   <topicref href="../Destinations/MongoDB-OperationHeader.dita"/>
+   <topicref href="../Destinations/MongoDB-Configuring.dita"/>
   </topicref>
   <topicref href="../Destinations/RabbitMQ.dita" chunk="to-content">
    <topicmeta>

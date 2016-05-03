@@ -86,6 +86,7 @@
    <topicref href="../Install_Config/Kerberos.dita"/>
    <topicref href="../Install_Config/StoringLoadingSensitiveInformation.dita"/>
    <topicref href="../Install_Config/HTTP_protocols.dita"/>
+   <topicref href="../Install_Config/BlacklistWhitelist.dita"/>
    <topicref href="../Install_Config/ConfiguringDataCollector.dita"/>
   </topicref>
   <topicref href="../Install_Config/DCEnvironmentConfig.dita" chunk="to-content">
@@ -97,10 +98,16 @@
    <topicref href="../Install_Config/JavaConfigOptions.dita">
     <topicref href="../Install_Config/JavaHeapSize.dita"/>
     <topicref href="../Install_Config/PermGenSize.dita"/>
-    <topicref href="../Install_Config/EnablingJMXTools.dita"/>
    </topicref>
    <topicref href="../Install_Config/JavaSecurityManager.dita"/>
    <topicref href="../Install_Config/RootClassloader.dita"/>
   </topicref>
+  <topicref href="../Install_Config/JMXMetrics-EnableExternalTools.dita" chunk="to-content">
+   <topicmeta>
+    <shortdesc/>
+   </topicmeta>
+   <topicref href="../Install_Config/JMXMetrics-ViewExternalTools.dita"/>
+   <topicref href="../Install_Config/JMXMetrics-Custom.dita"/>
   </topicref>
+ </topicref>
 </map>

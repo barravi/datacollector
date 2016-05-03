@@ -32,6 +32,7 @@ import com.streamsets.pipeline.lib.io.OverrunException;
 import com.streamsets.pipeline.lib.parser.DataParser;
 import com.streamsets.pipeline.lib.parser.DataParserException;
 import com.streamsets.pipeline.lib.parser.DataParserFactory;
+import com.streamsets.pipeline.stage.common.HeaderAttributeConstants;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -406,7 +407,7 @@ public class SpoolDirSource extends BaseSource {
         offset = produce(currentFile, offset, batchSize, batchMaker);
       } catch (BadSpoolFileException ex) {
         LOG.error(Errors.SPOOLDIR_01.getMessage(), ex.getFile(), ex.getPos(), ex.toString(), ex);
-        getContext().reportError(Errors.SPOOLDIR_01, ex.getFile(), ex.getPos(), ex.toString());
+        getContext().reportError(Errors.SPOOLDIR_01, ex.getFile(), ex.getPos(), ex.toString(), ex);
         try {
           // then we ask the spooler to error handle the failed file
           spooler.handleCurrentFileAsError();
@@ -440,6 +441,8 @@ public class SpoolDirSource extends BaseSource {
         try {
           Record record = parser.parse();
           if (record != null) {
+            record.getHeader().setAttribute(HeaderAttributeConstants.FILE, file.getPath());
+            record.getHeader().setAttribute(HeaderAttributeConstants.OFFSET, offset == null ? "0" : offset);
             batchMaker.addRecord(record);
             offset = parser.getOffset();
           } else {
@@ -455,7 +458,7 @@ public class SpoolDirSource extends BaseSource {
             case DISCARD:
               break;
             case TO_ERROR:
-              getContext().reportError(Errors.SPOOLDIR_02, sourceFile, exOffset);
+              getContext().reportError(Errors.SPOOLDIR_02, sourceFile, exOffset, ex);
               break;
             case STOP_PIPELINE:
               throw new StageException(Errors.SPOOLDIR_02, sourceFile, exOffset);
@@ -491,7 +494,7 @@ public class SpoolDirSource extends BaseSource {
             // throw an exception.
             throw new BadSpoolFileException(file.getAbsolutePath(), exOffset, ex);
           case STOP_PIPELINE:
-            getContext().reportError(Errors.SPOOLDIR_04, sourceFile, exOffset, ex.toString());
+            getContext().reportError(Errors.SPOOLDIR_04, sourceFile, exOffset, ex.toString(), ex);
             throw new StageException(Errors.SPOOLDIR_04, sourceFile, exOffset, ex.toString());
           default:
             throw new IllegalStateException(Utils.format("Unknown OnError value '{}'",

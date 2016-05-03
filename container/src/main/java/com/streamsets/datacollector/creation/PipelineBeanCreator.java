@@ -41,7 +41,6 @@ import com.streamsets.pipeline.api.ExecutionMode;
 import com.streamsets.pipeline.api.Stage;
 import com.streamsets.pipeline.api.el.ELEvalException;
 import com.streamsets.pipeline.api.impl.Utils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -380,7 +379,11 @@ public abstract class PipelineBeanCreator {
     IssueCreator issueCreator = IssueCreator.getStage(stageName);
     if (value instanceof String) {
       String strValue = value.toString();
-      if (strValue.isEmpty() || strValue.length() > 1) {
+      if (!strValue.isEmpty() && strValue.startsWith("\\u") && strValue.length() > 5 &&
+          strValue.substring(2).matches("^[0-9a-fA-F]+$")) {
+        // To support non printable unicode control characters
+        value = (char) Integer.parseInt(strValue.substring(2), 16 );
+      } else if (strValue.isEmpty() || strValue.length() > 1) {
         errors.add(issueCreator.create(groupName, configName, CreationError.CREATION_012, value, strValue));
         value = null;
       } else {

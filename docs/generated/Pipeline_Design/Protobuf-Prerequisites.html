@@ -32,10 +32,11 @@
 <table class="nav"><tbody><tr><td colspan="2"><div id="printlink"><a href="javascript:window.print();" title="Print this page"></a></div><div id="permalink"><a href="#" title="Link to this page"></a></div></td></tr><tr><td width="75%"><a class="navheader_parent_path" href="../Pipeline_Design/PipelineDesign_title.html" title="Pipeline Concepts and Design">Pipeline Concepts and Design</a></td><td><div class="navheader">
 <span class="navparent"><a class="link" href="../Pipeline_Design/PipelineDesign_title.html" title="Pipeline Concepts and Design"><span class="navheader_label">Parent topic</span><span class="navheader_separator">: </span><span class="navheader_linktext">Pipeline Concepts and Design</span></a></span>  </div></td></tr></tbody></table>
 
- <h1 class="title topictitle1">Protobuf Data Format Prerequisites</h1>
+    <h1 class="title topictitle1">Protobuf Data Format Prerequisites</h1>
 
- 
- <div class="body conbody"><p class="shortdesc">Perform the following prerequisites before reading or writing protobuf data.</p>
+    
+    <div class="body conbody"><p class="shortdesc">Perform the following prerequisites before reading or writing protobuf
+        data.</p>
 
         <p class="p"><span class="ph">Data
                   Collector</span>
@@ -79,45 +80,14 @@
                   Collector</span> resources directory</dt>
 
                 <dd class="dd">Save the generated descriptor file in the <samp class="ph codeph">$SDC_RESOURCES</samp>
-                    directory. For more information about environment variables, see <a class="xref" href="../Install_Config/DCEnvironmentConfig.html#concept_rng_qym_qr" title="You can edit the Data Collector environment configuration file to modify the directories used to store configuration, data, log, and resource files.When you run Data Collector as a service, you must create a system user and group named sdc, or you must edit the values of the SDC_USER and SDC_GROUP environment variables to point to an existing system user or group.You can define the Data Collector Java heap size. By default, the Java heap size is 1024 MB. When you use Data Collector with Java 7, you can define the Java Permanent Generation size, also known as the PermGen size.Data Collector can provide JMX metrics to external tools. Data Collector includes a Java Security Manager that is enabled by default. You can edit the Data Collector environment configuration file to configure the path to jar files to be added to the Data Collector root classloader.">Data Collector Environment Variables</a>.</dd>
+                    directory. For more information about environment variables, see <a class="xref" href="../Install_Config/DCEnvironmentConfig.html#concept_rng_qym_qr" title="You can edit the Data Collector environment configuration file to modify the directories used to store configuration, data, log, and resource files.When you run Data Collector as a service, you must create a system user and group named sdc, or you must edit the values of the SDC_USER and SDC_GROUP environment variables to point to an existing system user or group.You can define the Data Collector Java heap size. By default, the Java heap size is 1024 MB. When you use Data Collector with Java 7, you can define the Java Permanent Generation size, also known as the PermGen size.Data Collector includes a Java Security Manager that is enabled by default. You can edit the Data Collector environment configuration file to configure the path to jar files to be added to the Data Collector root classloader.">Data Collector Environment Configuration</a>.</dd>
 
             
         </dl>
 
-        <div class="p">After completing the prerequisites, you can use the following origins to read protobuf
-                data:<ul class="ul" id="concept_uxh_nc4_45__ul_qmf_3gm_55">
-                <li class="li">Amazon S3</li>
+        <p class="p">For a list of origins and destinations that process protobuf data, see <a class="xref" href="../Apx-DataFormats/DataFormat_Overview.html#concept_bcw_qzb_kv" title="This appendix lists the data formats supported by Data Collector origins and destinations.">Data Format Support</a>.</p>
 
-                <li class="li">Directory</li>
-
-                <li class="li">JMS Consumer</li>
-
-                <li class="li">Kafka Consumer</li>
-
-                <li class="li">Kinesis Consumer</li>
-
-                <li class="li">RabbitMQ Consumer</li>
-
-            </ul>
-</div>
-
-        <div class="p">You can also use the following destinations to write protobuf data:<ul class="ul" id="concept_uxh_nc4_45__ul_vzs_kgm_55">
-                <li class="li">Amazon S3</li>
-
-                <li class="li">Flume</li>
-
-                <li class="li">Hadoop FS</li>
-
-                <li class="li">Kafka Producer</li>
-
-                <li class="li">Kinesis Producer</li>
-
-                <li class="li">Local FS</li>
-
-            </ul>
-</div>
-
- </div>
+    </div>
 
 <div class="related-links"></div>
 <div class="navfooter"><!---->

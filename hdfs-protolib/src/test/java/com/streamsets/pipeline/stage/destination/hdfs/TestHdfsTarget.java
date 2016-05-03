@@ -33,11 +33,17 @@ import com.streamsets.pipeline.sdk.TargetRunner;
 import com.streamsets.pipeline.stage.destination.hdfs.util.HdfsTargetUtil;
 import com.streamsets.pipeline.stage.destination.hdfs.writer.ActiveRecordWriters;
 import com.streamsets.pipeline.stage.destination.lib.DataGeneratorFormatConfig;
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -49,13 +55,18 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 public class TestHdfsTarget {
-  private static String testDir;
+  private String testDir;
 
-  @BeforeClass
-  public static void setUpClass() {
+  @Before
+  public void setUp() {
     File dir = new File("target", UUID.randomUUID().toString()).getAbsoluteFile();
     Assert.assertTrue(dir.mkdirs());
     testDir = dir.getAbsolutePath();
+  }
+
+  @After
+  public void after() {
+    FileUtils.deleteQuietly(new File(testDir));
   }
 
   private String getTestDir() {
@@ -87,7 +98,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_LATE_RECORDS_FILE,
         "",
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -128,6 +140,54 @@ public class TestHdfsTarget {
   }
 
   @Test
+  public void testOnlyConfDirectory() throws Exception {
+    DataGeneratorFormatConfig dataGeneratorFormatConfig = new DataGeneratorFormatConfig();
+
+    // Create core-site.xml
+    Configuration configuration = new Configuration();
+    configuration.clear();
+    configuration.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, "file:///");
+    FileOutputStream configOut = FileUtils.openOutputStream(new File(getTestDir() + "/conf-dir/core-site.xml"));
+    configuration.writeXml(configOut);
+    configOut.close();
+
+    HdfsTarget hdfsTarget = HdfsTargetUtil.createHdfsTarget(
+        "",
+        "foo",
+        false,
+        getTestDir() + "/conf-dir/",
+        new HashMap<String, String>(),
+        "foo",
+        "UTC",
+        getTestDir() + "/hdfs/${YYYY()}${MM()}${DD()}${hh()}${mm()}${record:value('/a')}",
+        HdfsFileType.TEXT,
+        "${uuid()}",
+        CompressionMode.NONE,
+        HdfsSequenceFileCompressionType.BLOCK,
+        5,
+        0,
+        "${record:value('/time')}",
+        "${30 * MINUTES}",
+        LateRecordsAction.SEND_TO_LATE_RECORDS_FILE,
+        "",
+        DataFormat.SDC_JSON,
+        dataGeneratorFormatConfig,
+        null
+    );
+
+    TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
+      .setOnRecordError(OnRecordError.STOP_PIPELINE)
+      .build();
+
+    runner.runInit();
+
+    // The configuration object should have the FS config from core-site.xml
+    Assert.assertEquals("file:///", hdfsTarget.getHdfsConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY));
+
+    runner.runDestroy();
+  }
+
+  @Test
   public void testCutoffLimitUnitConversion() throws Exception {
     DataGeneratorFormatConfig dataGeneratorFormatConfig = new DataGeneratorFormatConfig();
 
@@ -151,7 +211,8 @@ public class TestHdfsTarget {
       LateRecordsAction.SEND_TO_LATE_RECORDS_FILE,
       getTestDir() + "/hdfs/${YYYY()}",
       DataFormat.SDC_JSON,
-      dataGeneratorFormatConfig
+      dataGeneratorFormatConfig,
+      null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -169,6 +230,7 @@ public class TestHdfsTarget {
     }
   }
 
+  @Ignore
   @Test
   public void testEmptyBatch() throws Exception {
     DataGeneratorFormatConfig dataGeneratorFormatConfig = new DataGeneratorFormatConfig();
@@ -193,7 +255,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_ERROR,
         "",
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -242,7 +305,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_ERROR,
         "",
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -283,7 +347,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_ERROR, // action should be SEND_TO_ERROR to skip validation
         "relative_path", // lateRecordsDirPathTemplate is relative path
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -321,7 +386,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_LATE_RECORDS_FILE, // action should be SEND_TO_LATE_RECORDS_FILE
         getTestDir() + "/late_record/${TEST}", // lateRecordsDirPathTemplate contains constant that we don't know
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -363,7 +429,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_LATE_RECORDS_FILE, // action should be SEND_TO_LATE_RECORDS_FILE
         "relative/late_record",  // creating this dir should fail
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -406,7 +473,8 @@ public class TestHdfsTarget {
         LateRecordsAction.SEND_TO_LATE_RECORDS_FILE, // action should be SEND_TO_LATE_RECORDS_FILE
         getTestDir() + "/late_record/${YYYY()}-${MM()}", // lateRecordsDirPathTemplate contains Els
         DataFormat.SDC_JSON,
-        dataGeneratorFormatConfig
+        dataGeneratorFormatConfig,
+        null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -450,7 +518,8 @@ public class TestHdfsTarget {
       LateRecordsAction.SEND_TO_ERROR,
       "",
       DataFormat.SDC_JSON,
-      dataGeneratorFormatConfig
+      dataGeneratorFormatConfig,
+      null
     );
 
     TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
@@ -465,5 +534,85 @@ public class TestHdfsTarget {
     } catch (StageException e) {
       Assert.assertTrue(e.getMessage().contains("HADOOPFS_45"));
     }
+  }
+
+  @Test
+  public void testIdleTimeout() throws Exception {
+
+    DataGeneratorFormatConfig dataGeneratorFormatConfig = new DataGeneratorFormatConfig();
+
+    HdfsTarget hdfsTarget = HdfsTargetUtil.createHdfsTarget(
+        "file:///",
+        "foo",
+        false,
+        null,
+        new HashMap<String, String>(),
+        "foo",
+        "UTC",
+        getTestDir() + "/hdfs/${YYYY()}${MM()}${DD()}",
+        HdfsFileType.TEXT,
+        "${uuid()}",
+        CompressionMode.NONE,
+        HdfsSequenceFileCompressionType.BLOCK,
+        5,
+        0,
+        "${record:value('/time')}",
+        "${30 * MINUTES}",
+        LateRecordsAction.SEND_TO_LATE_RECORDS_FILE,
+        "",
+        DataFormat.SDC_JSON,
+        dataGeneratorFormatConfig,
+        "1"
+    );
+
+    TargetRunner runner = new TargetRunner.Builder(HdfsDTarget.class, hdfsTarget)
+        .setOnRecordError(OnRecordError.STOP_PIPELINE)
+        .build();
+
+    runner.runInit();
+    List<Record> records = new ArrayList<>();
+    Record record = RecordCreator.create();
+    Map<String, Field> map = new HashMap<>();
+    map.put("time", Field.createDatetime(new Date()));
+    map.put("a", Field.create("x"));
+    record.set(Field.create(map));
+    records.add(record);
+    runner.runWrite(ImmutableList.copyOf(new Record[]{record}));
+
+    // Idle for 1500 milliseconds - should create a new file.
+    Thread.sleep(1500);
+    record = RecordCreator.create();
+    map.put("a", Field.create("y"));
+    record.set(Field.create(map));
+    records.add(record);
+    runner.runWrite(ImmutableList.copyOf(new Record[]{record}));
+
+    // Idle for 500 milliseconds - no new file
+    Thread.sleep(500);
+    record = RecordCreator.create();
+    map = new HashMap<>();
+    map.put("time", Field.createDatetime(new Date(System.currentTimeMillis() - 1 * 60 * 1000)));
+    map.put("a", Field.create("x"));
+    record.set(Field.create(map));
+    records.add(record);
+    runner.runWrite(ImmutableList.copyOf(new Record[]{record}));
+
+    // Idle for 1500 milliseconds - one more file.
+    Thread.sleep(1500);
+    record = RecordCreator.create();
+    map = new HashMap<>();
+    map.put("time", Field.createDatetime(new Date(System.currentTimeMillis() - 2 * 60 * 1000)));
+    map.put("a", Field.create("x"));
+    record.set(Field.create(map));
+    records.add(record);
+    runner.runWrite(ImmutableList.copyOf(new Record[]{record}));
+
+    runner.runDestroy();
+
+    File[] list = (new File(getTestDir() + "/hdfs/").listFiles())[0].listFiles();
+    for (File f: list) {
+      System.out.print(f.getName());
+    }
+    Assert.assertEquals(3, list.length);
   }
 }

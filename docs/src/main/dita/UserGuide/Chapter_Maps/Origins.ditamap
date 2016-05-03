@@ -34,6 +34,7 @@
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Origins/Directory_FileProcessing.dita"/>
    <topicref href="../Origins/Directory-BufferLimit.dita"/>
+   <topicref href="../Origins/Directory-LateDir.dita"/>
    <topicref href="../Origins/Directory-DataFormat.dita">
     <topicref href="../Origins/LogFormats.dita"/>
    </topicref>
@@ -41,16 +42,16 @@
   </topicref>
   <topicref href="../Origins/FileTail.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
-   <topicref href="../Origins/FileTail-MultipleDirectories.dita">
-    <topicref href="../Origins/FileTail-TagAttribute.dita"/>
-   </topicref>
    <topicref href="../Origins/FileTail-FileProcessing.dita"/>
-   <topicref href="../Origins/FileTail-PathsandPatterns.dita"/>
+   <topicref href="../Origins/FileTail-MultipleDirectories.dita"/>
+   <topicref href="../Origins/FileTail-LateDirectories.dita"/>
+   <topicref href="../Origins/FileTail-Patterns.dita"/>
+   <topicref href="../Origins/FileTail-TagAttribute.dita"/>
+   <topicref href="../Origins/FileTail-MultipleLines.dita"/>
+   <topicref href="../Origins/FileTail-Output.dita"/>
    <topicref href="../Origins/FileTail-DataFormats.dita">
     <topicref href="../Origins/LogFormats.dita"/>
    </topicref>
-   <topicref href="../Origins/FileTail-MultipleLines.dita"/>
-   <topicref href="../Origins/FileTail-Output.dita"/>
    <topicref href="../Origins/FileTail-Configuring.dita"/>
   </topicref>
   <topicref href="../Origins/HadoopFS-origin.dita" chunk="to-content">   
@@ -107,7 +108,7 @@
   <topicref href="../Origins/MapRStreamsCons.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Origins/MapRStreamsCons-AddProps.dita"/>
-   <topicref href="../Destinations/MapRStreamsProd-DataFormats.dita">
+   <topicref href="../Origins/MapRStreamsCons-DataFormats.dita">
     <topicref href="../Origins/LogFormats.dita"/>
    </topicref>
    <topicref href="../Origins/MapRStreamsCons-AllData.dita"/>
@@ -132,6 +133,10 @@
   <topicref href="../Origins/SDC_RPCorigin.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Origins/RPCorigin-Configuring.dita"/>
+  </topicref>
+  <topicref href="../Origins/SFTP.dita" chunk="to-content">
+   <topicmeta><shortdesc></shortdesc></topicmeta>
+   <topicref href="../Origins/SFTP-Configuring.dita"/>
   </topicref>
   <topicref href="../Origins/UDP.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>

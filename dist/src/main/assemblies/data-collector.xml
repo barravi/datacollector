@@ -158,6 +158,12 @@
       <outputDirectory>/streamsets-libs/</outputDirectory>
     </fileSet>
 
+    <!-- stats-lib -->
+    <fileSet>
+      <directory>${basedir}/../stats-lib/target/streamsets-libs/</directory>
+      <outputDirectory>/streamsets-libs/</outputDirectory>
+    </fileSet>
+
     <!-- omniture-lib -->
     <fileSet>
       <directory>${basedir}/../omniture-lib/target/streamsets-libs/</directory>
@@ -222,6 +228,10 @@
       <directory>${basedir}/../${cdh_5_5-cluster-cdh_kafka_1_3-lib}/target/streamsets-libs/</directory>
       <outputDirectory>/streamsets-libs/</outputDirectory>
     </fileSet>
+    <fileSet>
+      <directory>${basedir}/../${cdh_5_7-cluster-cdh_kafka_2_0-lib}/target/streamsets-libs/</directory>
+      <outputDirectory>/streamsets-libs/</outputDirectory>
+    </fileSet>
 
     <!-- HDP Libs -->
     <fileSet>
@@ -240,6 +250,12 @@
     </fileSet>
     <fileSet>
       <directory>${basedir}/../${mapr_5_1-lib}/target/streamsets-libs/</directory>
+      <outputDirectory>/streamsets-libs/</outputDirectory>
+    </fileSet>
+
+    <!-- Apache Kudu libs -->
+    <fileSet>
+      <directory>${basedir}/../${apache-kudu-0_7-lib}/target/streamsets-libs/</directory>
       <outputDirectory>/streamsets-libs/</outputDirectory>
     </fileSet>
 
@@ -324,6 +340,10 @@
     </fileSet>
     <fileSet>
       <directory>${basedir}/../${elasticsearch_2_2-lib}/target/streamsets-libs/</directory>
+      <outputDirectory>/streamsets-libs/</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>${basedir}/../${elasticsearch_2_3-lib}/target/streamsets-libs/</directory>
       <outputDirectory>/streamsets-libs/</outputDirectory>
     </fileSet>
 

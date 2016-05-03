@@ -43,6 +43,7 @@
   <topicref href="../Processors/FieldHasher.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Processors/FieldHasher-Methods.dita"/>
+   <topicref href="../Processors/FieldHasher-ListMapFields.dita"/>
    <topicref href="../Processors/FieldHasher-Configuring.dita"/>
   </topicref>
   <topicref href="../Processors/FieldMasker.dita" chunk="to-content">
@@ -98,6 +99,12 @@
    <topicref href="../Processors/Jython-TypeHandling.dita"/>
    <topicref href="../Processors/Jython-Configuring.dita"/>
   </topicref>
+  <topicref href="../Processors/LocalLookup.dita" chunk="to-content">
+   <topicmeta>
+    <shortdesc/>
+   </topicmeta>
+   <topicref href="../Processors/LocalLookup-Configuring.dita"/>
+  </topicref>
   <topicref href="../Processors/LogParser.dita" chunk="to-content">
    <topicmeta>
     <shortdesc/>
@@ -112,6 +119,12 @@
    <topicref href="../Processors/RDeduplicator-ComparisonWindow.dita"/>
    <topicref href="../Processors/RDeduplicator-Configuring.dita"/>
   </topicref>
+  <topicref href="../Processors/RedisLookup.dita" chunk="to-content">
+   <topicmeta>
+    <shortdesc/>
+   </topicmeta>
+   <topicref href="../Processors/RedisLookup-Configuring.dita"/>
+  </topicref>
   <topicref href="../Processors/StreamSelector.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Processors/StreamSelector-DefaultStream.dita"/>
@@ -121,6 +134,10 @@
   <topicref href="../Processors/ValueReplacer.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>
    <topicref href="../Processors/ValueReplacer-Configuring.dita"/>
+  </topicref>
+  <topicref href="../Processors/XMLFlattener.dita" chunk="to-content">
+   <topicmeta><shortdesc></shortdesc></topicmeta>
+   <topicref href="../Processors/XMLFlattener-Configuring.dita"/>
   </topicref>
   <topicref href="../Processors/XMLParser.dita" chunk="to-content">
    <topicmeta><shortdesc></shortdesc></topicmeta>

@@ -81,6 +81,9 @@ public enum Errors implements ErrorCode {
   HADOOPFS_46("The compression codec '{}' requires native libraries to be installed: {}"),
   HADOOPFS_47("Time basis expression '{}' evaluated to NULL for this record"),
   HADOOPFS_48("Failed to instantiate compression codec due to error: {}"),
+
+  HADOOPFS_49("HDFS URI is not set and is also not available through 'fs.defaultFS' config"),
+
   ;
 
   private final String msg;

@@ -20,11 +20,11 @@
 package com.streamsets.datacollector.el;
 
 import com.streamsets.datacollector.main.RuntimeInfo;
+import com.streamsets.datacollector.util.Configuration;
 import com.streamsets.pipeline.api.ElConstant;
 import com.streamsets.pipeline.api.ElFunction;
 import com.streamsets.pipeline.api.ElParam;
 import com.streamsets.pipeline.api.impl.Utils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,11 +42,13 @@ import java.util.Set;
 public class RuntimeEL {
 
   private static final Logger LOG = LoggerFactory.getLogger(RuntimeEL.class);
-  private static final String SDC_PROPERTIES = "sdc.properties";
+  private static final String DPM_PROPERTIES = "dpm.properties";
   private static final String RUNTIME_CONF_LOCATION_KEY = "runtime.conf.location";
   private static final String RUNTIME_CONF_LOCATION_DEFAULT = "embedded";
   private static final String RUNTIME_CONF_PREFIX = "runtime.conf_";
+  private static final String DPM_APPLICATION_TOKEN = "dpm.applicationToken";
   private static Properties RUNTIME_CONF_PROPS = null;
+  private static String AUTH_TOKEN = null;
   private static RuntimeInfo runtimeInfo;
 
   @ElConstant(name = "NULL", description = "NULL value")
@@ -76,7 +78,8 @@ public class RuntimeEL {
       description = "Loads the contents of a file under the Data Collector resources directory. " +
                     "If restricted is set to 'true', the file must be readable only by its owner."
   )
-  public static String loadResource(
+  public static String loadResource
+    (
       @ElParam("fileName") String fileName,
       @ElParam("restricted") boolean restricted) {
     String resource = null;
@@ -122,10 +125,16 @@ public class RuntimeEL {
      */
 
     Properties sdcProps = new Properties();
-    try(InputStream is = new FileInputStream(new File(runtimeInfo.getConfigDir(), SDC_PROPERTIES))) {
+    try(InputStream is = new FileInputStream(new File(runtimeInfo.getConfigDir(), DPM_PROPERTIES))) {
       sdcProps.load(is);
     } catch (IOException e) {
-      LOG.error("Could not read '{}' from classpath: {}", SDC_PROPERTIES, e.toString(), e);
+      LOG.error("Could not read '{}' from classpath: {}", DPM_PROPERTIES, e.toString(), e);
+    }
+
+    String authTokenFileName = sdcProps.getProperty(DPM_APPLICATION_TOKEN);
+    if (null != authTokenFileName && !authTokenFileName.isEmpty() && Configuration.FileRef.isValueMyRef(authTokenFileName)) {
+      Configuration.FileRef fileRef = new Configuration.FileRef(authTokenFileName);
+      AUTH_TOKEN = fileRef.getValue();
     }
 
     RUNTIME_CONF_PROPS = new Properties();
@@ -147,6 +156,15 @@ public class RuntimeEL {
         throw e;
       }
     }
+  }
+
+  @ElFunction(
+    prefix = "sdc",
+    name = "authToken",
+    description = "Returns the auth token of this data collector")
+  public static String authToken() {
+
+    return AUTH_TOKEN;
   }
 
   public static Set<Object> getRuntimeConfKeys() {

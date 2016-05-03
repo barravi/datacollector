@@ -19,28 +19,15 @@
  */
 package com.streamsets.datacollector.event.handler.remote;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.streamsets.datacollector.config.StageDefinition;
 import com.streamsets.datacollector.config.dto.PipelineConfigAndRules;
+import com.streamsets.datacollector.event.binding.MessagingJsonToFromDto;
 import com.streamsets.datacollector.event.client.api.EventClient;
 import com.streamsets.datacollector.event.client.api.EventException;
-import com.streamsets.datacollector.event.binding.MessagingJsonToFromDto;
 import com.streamsets.datacollector.event.dto.AckEvent;
 import com.streamsets.datacollector.event.dto.AckEventStatus;
 import com.streamsets.datacollector.event.dto.ClientEvent;
@@ -73,16 +60,28 @@ import com.streamsets.datacollector.util.PipelineException;
 import com.streamsets.pipeline.api.StageException;
 import com.streamsets.pipeline.api.impl.Utils;
 import com.streamsets.pipeline.lib.executor.SafeScheduledExecutorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 public class RemoteEventHandlerTask extends AbstractTask implements EventHandlerTask {
   private static final Logger LOG = LoggerFactory.getLogger(RemoteEventHandlerTask.class);
-  private static final Long DEFAULT_PING_INTERVAL = Long.valueOf(10000);
+  private static final Long DEFAULT_PING_FREQUENCY = Long.valueOf(5000);
   private static final String REMOTE_CONTROL = "remote.control.";
-  public static final String REMOTE_CONTROL_URL = REMOTE_CONTROL + "url";
   private static final String REMOTE_JOB_LABELS = REMOTE_CONTROL + "job.labels";
+  private static final String REMOTE_URL_PING_INTERVAL = REMOTE_CONTROL  + ".ping.frequency";
   private static final String DEFAULT_REMOTE_JOB_LABELS = "";
   private static final String REMOTE_CONTROL_APP_TYPE = REMOTE_CONTROL + "targetapp.type";
-  private static final String DEFAULT_APP_TYPE = "JOB_RUNNER";
+  private static final String DEFAULT_APP_TYPE = "DPM";
   private final DataCollector remoteDataCollector;
   private final EventClient eventSenderReceiver;
   private final MessagingJsonToFromDto jsonToFromDto;
@@ -92,6 +91,7 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
   private final String appDestination;
   private final List<String> labelList;
   private final Map<String, String> requestHeader;
+  private final long defaultPingFrequency;
 
   public RemoteEventHandlerTask(DataCollector remoteDataCollector,
     EventClient eventSenderReceiver,
@@ -111,6 +111,7 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
     String labels = conf.get(REMOTE_JOB_LABELS, DEFAULT_REMOTE_JOB_LABELS);
     String appToken = conf.get(WebServerTask.REMOTE_APPLICATION_TOKEN, "");
     labelList = Lists.newArrayList(Splitter.on(",").split(labels));
+    defaultPingFrequency = conf.get(REMOTE_URL_PING_INTERVAL, DEFAULT_PING_FREQUENCY);
     requestHeader = new HashMap<>();
     requestHeader.put("X-Requested-By", "SDC");
     requestHeader.put("X-SS-App-Auth-Token", appToken);
@@ -120,7 +121,7 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
   @Override
   public void runTask() {
     executorService.submit(new EventHandlerCallable(remoteDataCollector, eventSenderReceiver, jsonToFromDto,
-      new ArrayList<ClientEvent>(), getStartupReportEvent(), executorService, DEFAULT_PING_INTERVAL, appDestination,
+      new ArrayList<ClientEvent>(), getStartupReportEvent(), executorService, defaultPingFrequency, appDestination,
       requestHeader));
 
   }
@@ -228,6 +229,7 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
         return;
       }
       List<ClientEvent> ackClientEventList = new ArrayList<ClientEvent>();
+      LOG.debug(Utils.format("Got '{}' events ", serverEventJsonList.size()));
       for (ServerEventJson serverEventJson : serverEventJsonList) {
         ClientEvent clientEvent = handlePipelineEvent(serverEventJson);
         if (clientEvent != null) {
@@ -245,6 +247,7 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
         serverEvent = jsonToFromDto.asDto(serverEventJson);
         Event event = serverEvent.getEvent();
         EventType eventType = serverEvent.getEventType();
+        LOG.info(Utils.format("Handling event of type: '{}' ", eventType));
         switch (eventType) {
           case PING_FREQUENCY_ADJUSTMENT:
             delay = ((PingFrequencyAdjustmentEvent)event).getPingFrequency();
@@ -299,6 +302,11 @@ public class RemoteEventHandlerTask extends AbstractTask implements EventHandler
           case DELETE_PIPELINE:
             PipelineBaseEvent pipelineDeleteEvent = (PipelineBaseEvent) event;
             remoteDataCollector.delete(pipelineDeleteEvent.getName(), pipelineDeleteEvent.getRev());
+            break;
+          case STOP_DELETE_PIPELINE:
+            PipelineBaseEvent pipelineStopDeleteEvent = (PipelineBaseEvent) event;
+            remoteDataCollector.stopAndDelete(pipelineStopDeleteEvent.getUser(), pipelineStopDeleteEvent.getName(),
+              pipelineStopDeleteEvent.getRev());
             break;
           default:
             ackEventMessage = Utils.format("Unrecognized event: '{}'", eventType);

@@ -21,10 +21,8 @@
     <p><indexterm>processors<indexterm>overview</indexterm></indexterm>The <ph
         conref="../Reusable_Content/ReusablePhrases.dita#concept_vhs_5tz_xp/pName-long"/> provides
       the following processors:<ul id="ul_mxz_jxm_jq">
-        <li>Base64 Decoder - Decodes Base64 encoded data to binary data.<draft-comment
-            author="alisontaylor">SDC-2685 tracks name change to Base64 Field
-            Decoder/Encoder</draft-comment></li>
-        <li>Base64 Encoder - Encodes binary data using Base64.</li>
+        <li>Base64 Field Decoder - Decodes Base64 encoded data to binary data.</li>
+        <li>Base64 Field Encoder - Encodes binary data using Base64.</li>
         <li>Expression Evaluator - Performs calculations on data. Can also add or modify record
           header attributes.</li>
         <li>Field Converter - Converts the data type of a field.</li>
@@ -45,5 +43,19 @@
         <li>Value Replacer - Replaces null values or replaces values with nulls.</li>
         <li>XML Parser - Parses XML data in a string field. </li>
       </ul></p>
+    <p>To help create or test pipelines, you can use the following development processors:<ul
+        id="ul_c3m_m1p_qv">
+        <li>
+          <p>Dev Identity</p>
+        </li>
+        <li>
+          <p>Dev Random Error</p>
+        </li>
+        <li>
+          <p>Dev Record Creator </p>
+        </li>
+      </ul></p>
+    <p>For more information, see <xref href="../Pipeline_Design/DevStages.dita#concept_czx_ktn_ht"
+      />.</p>
   </conbody>
 </concept>

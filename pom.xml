@@ -20,7 +20,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.streamsets</groupId>
   <artifactId>streamsets-datacollector</artifactId>
-  <version>1.3.0.0-SNAPSHOT</version>
+  <version>1.4.0.0-SNAPSHOT</version>
   <description>StreamSets Data Collector</description>
   <name>StreamSets Data Collector</name>
   <packaging>pom</packaging>
@@ -65,6 +65,7 @@
     <cdh_5_4-cluster-cdh_kafka_1_2-lib>none</cdh_5_4-cluster-cdh_kafka_1_2-lib>
     <cdh_5_4-cluster-cdh_kafka_1_3-lib>none</cdh_5_4-cluster-cdh_kafka_1_3-lib>
     <cdh_5_5-cluster-cdh_kafka_1_3-lib>none</cdh_5_5-cluster-cdh_kafka_1_3-lib>
+    <apache-kudu-0_7-lib>none</apache-kudu-0_7-lib>
     <apache-kafka_0_8_1-lib>none</apache-kafka_0_8_1-lib>
     <apache-kafka_0_8_2-lib>none</apache-kafka_0_8_2-lib>
     <apache-kafka_0_9-lib>none</apache-kafka_0_9-lib>
@@ -77,6 +78,7 @@
     <elasticsearch_2_0-lib>none</elasticsearch_2_0-lib>
     <elasticsearch_2_1-lib>none</elasticsearch_2_1-lib>
     <elasticsearch_2_2-lib>none</elasticsearch_2_2-lib>
+    <elasticsearch_2_3-lib>none</elasticsearch_2_3-lib>
     <cassandra_2-lib>none</cassandra_2-lib>
     <mongodb_3-lib>none</mongodb_3-lib>
     <influxdb_0_9-lib>none</influxdb_0_9-lib>
@@ -89,7 +91,7 @@
       <dependency>
         <groupId>com.streamsets</groupId>
         <artifactId>streamsets-datacollector-api</artifactId>
-        <version>1.2.2.0-SNAPSHOT</version>
+        <version>1.3.0.0-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -118,6 +120,7 @@
     <module>dev-lib</module>
 
     <module>basic-lib</module>
+    <module>stats-lib</module>
 
     <module>omniture-lib</module>
 
@@ -159,6 +162,7 @@
     <module>aws-lib</module>
     <module>cluster-hdfs-protolib</module>
     <module>hbase-protolib</module>
+    <module>kudu-protolib</module>
     <module>cluster-common</module>
     <module>cluster-kafka-protolib</module>
     <module>spark-bootstrap</module>
@@ -423,18 +427,21 @@
         <cdh_5_4-lib>cdh_5_4-lib</cdh_5_4-lib>
         <hdp_2_2-lib>hdp_2_2-lib</hdp_2_2-lib>
         <mapr_5_0-lib>mapr_5_0-lib</mapr_5_0-lib>
+        <apache-kudu-0_7-lib>apache-kudu-0_7-lib</apache-kudu-0_7-lib>
         <apache-kafka_0_8_1-lib>apache-kafka_0_8_1-lib</apache-kafka_0_8_1-lib>
         <apache-kafka_0_8_2-lib>apache-kafka_0_8_2-lib</apache-kafka_0_8_2-lib>
         <apache-kafka_0_9-lib>apache-kafka_0_9-lib</apache-kafka_0_9-lib>
         <cdh_kafka_1_2-lib>cdh_kafka_1_2-lib</cdh_kafka_1_2-lib>
         <cdh_5_4-cluster-cdh_kafka_1_3-lib>cdh_5_4-cluster-cdh_kafka_1_3-lib</cdh_5_4-cluster-cdh_kafka_1_3-lib>
         <cdh_5_4-cluster-cdh_kafka_1_2-lib>cdh_5_4-cluster-cdh_kafka_1_2-lib</cdh_5_4-cluster-cdh_kafka_1_2-lib>
+        <cdh_5_5-cluster-cdh_kafka_1_3-lib>cdh_5_5-cluster-cdh_kafka_1_3-lib</cdh_5_5-cluster-cdh_kafka_1_3-lib>
         <elasticsearch_1_4-lib>elasticsearch_1_4-lib</elasticsearch_1_4-lib>
         <elasticsearch_1_5-lib>elasticsearch_1_5-lib</elasticsearch_1_5-lib>
         <elasticsearch_1_6-lib>elasticsearch_1_6-lib</elasticsearch_1_6-lib>
         <elasticsearch_1_7-lib>elasticsearch_1_7-lib</elasticsearch_1_7-lib>
         <elasticsearch_2_0-lib>elasticsearch_2_0-lib</elasticsearch_2_0-lib>
         <elasticsearch_2_1-lib>elasticsearch_2_1-lib</elasticsearch_2_1-lib>
+        <elasticsearch_2_2-lib>elasticsearch_2_2-lib</elasticsearch_2_2-lib>
         <aws-lib>aws-lib</aws-lib>
       </properties>
       <modules>
@@ -443,6 +450,7 @@
         <module>cdh_5_4-lib</module>
         <module>hdp_2_2-lib</module>
         <module>mapr_5_0-lib</module>
+        <module>apache-kudu-0_7-lib</module>
         <module>apache-kafka_0_8_1-lib</module>
         <module>apache-kafka_0_8_2-lib</module>
         <module>apache-kafka_0_9-lib</module>
@@ -455,6 +463,7 @@
         <module>elasticsearch_1_7-lib</module>
         <module>elasticsearch_2_0-lib</module>
         <module>elasticsearch_2_1-lib</module>
+        <module>elasticsearch_2_2-lib</module>
         <module>aws-lib</module>
       </modules>
     </profile>
@@ -474,10 +483,10 @@
         <cdh_kafka_1_3-lib>cdh_kafka_1_3-lib</cdh_kafka_1_3-lib>
         <jython_2_7-lib>jython_2_7-lib</jython_2_7-lib>
         <groovy_2_4-lib>groovy_2_4-lib</groovy_2_4-lib>
-        <elasticsearch_2_2-lib>elasticsearch_2_2-lib</elasticsearch_2_2-lib>
+        <elasticsearch_2_3-lib>elasticsearch_2_3-lib</elasticsearch_2_3-lib>
         <cassandra_2-lib>cassandra_2-lib</cassandra_2-lib>
         <mongodb_3-lib>mongodb_3-lib</mongodb_3-lib>
-        <cdh_5_5-cluster-cdh_kafka_1_3-lib>cdh_5_5-cluster-cdh_kafka_1_3-lib</cdh_5_5-cluster-cdh_kafka_1_3-lib>
+        <cdh_5_7-cluster-cdh_kafka_2_0-lib>cdh_5_7-cluster-cdh_kafka_2_0-lib</cdh_5_7-cluster-cdh_kafka_2_0-lib>
         <apache-kafka_0_8_2-lib>apache-kafka_0_8_2-lib</apache-kafka_0_8_2-lib>
         <apache-kafka_0_9-lib>apache-kafka_0_9-lib</apache-kafka_0_9-lib>
       </properties>
@@ -487,11 +496,11 @@
         <module>mapr_5_1-lib</module>
         <module>jython_2_7-lib</module>
         <module>groovy_2_4-lib</module>
-        <module>elasticsearch_2_2-lib</module>
+        <module>elasticsearch_2_3-lib</module>
         <module>cassandra_2-lib</module>
         <module>cdh_kafka_1_3-lib</module>
         <module>mongodb_3-lib</module>
-        <module>cdh_5_5-cluster-cdh_kafka_1_3-lib</module>
+        <module>cdh_5_7-cluster-cdh_kafka_2_0-lib</module>
         <module>apache-kafka_0_8_2-lib</module>
         <module>apache-kafka_0_9-lib</module>
         <module>influxdb_0_9-lib</module>

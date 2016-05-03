@@ -24,6 +24,7 @@ import com.streamsets.pipeline.api.StageException;
 import com.streamsets.pipeline.api.StageUpgrader;
 import com.streamsets.pipeline.api.impl.Utils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RandomDataGeneratorSourceUpgrader implements StageUpgrader {
@@ -33,6 +34,8 @@ public class RandomDataGeneratorSourceUpgrader implements StageUpgrader {
     switch(fromVersion) {
       case 1:
         upgradeV1ToV2(configs);
+      case 2:
+        upgradeV2ToV3(configs);
         break;
       default:
         throw new IllegalStateException(Utils.format("Unexpected fromVersion {}", fromVersion));
@@ -42,5 +45,9 @@ public class RandomDataGeneratorSourceUpgrader implements StageUpgrader {
 
   private void upgradeV1ToV2(List<Config> configs) {
     configs.add(new Config("rootFieldType", "MAP"));
+  }
+
+  private void upgradeV2ToV3(List<Config> configs) {
+    configs.add(new Config("headerAttributes", new ArrayList<>()));
   }
 }
