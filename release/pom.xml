@@ -60,6 +60,7 @@
             </goals>
             <configuration>
               <appendAssemblyId>false</appendAssemblyId>
+              <tarLongFileMode>posix</tarLongFileMode>  
               <attach>false</attach>
               <finalName>streamsets-datacollector-all-${project.version}</finalName>
               <descriptors>
@@ -75,6 +76,7 @@
             </goals>
             <configuration>
               <appendAssemblyId>false</appendAssemblyId>
+              <tarLongFileMode>posix</tarLongFileMode>  
               <attach>false</attach>
               <finalName>streamsets-datacollector-core-${project.version}</finalName>
               <descriptors>
